@@ -5,6 +5,8 @@ import { z } from "zod/v4";
 export const keysTable = pgTable("keys", {
   key: text("key").primaryKey(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  hwid: text("hwid"),
 });
 
 export const insertKeySchema = createInsertSchema(keysTable).omit({ createdAt: true });

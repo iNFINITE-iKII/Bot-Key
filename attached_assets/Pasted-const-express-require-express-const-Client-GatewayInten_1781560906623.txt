@@ -1,0 +1,73 @@
+const express = require('express');
+const { Client, GatewayIntentBits } = require('discord.js');
+
+const app = express();
+const port = 3000;
+
+// Ini adalah "Database" sementara di memori
+// Nanti bisa kita *upgrade* ke database sungguhan agar key tidak hilang saat server restart
+const validKeys = new Set();
+
+// ==========================================
+// 1. PENGATURAN WEB API (UNTUK ROBLOX)
+// ==========================================
+
+// Halaman utama (hanya untuk mengecek apakah server hidup)
+app.get('/', (req, res) => {
+    res.send('Server Backend KiiBoo Aktif!');
+});
+
+// Endpoint untuk mengecek key dari Roblox
+app.get('/check', (req, res) => {
+    // Menangkap key yang dikirimkan Roblox dari URL
+    const keyInput = req.query.key;
+    
+    // Mengecek apakah key ada di database sementara, ATAU menggunakan key master
+    if (validKeys.has(keyInput) || keyInput === "MASTER-KIIBOO-123") {
+        res.json({ status: "success", message: "Akses Diberikan!" });
+    } else {
+        res.json({ status: "error", message: "Key Tidak Valid atau Kedaluwarsa!" });
+    }
+});
+
+// Menyalakan server Web API
+app.listen(port, () => {
+    console.log(`[API] Server berjalan dan siap menerima request dari Roblox.`);
+});
+
+// ==========================================
+// 2. PENGATURAN DISCORD BOT
+// ==========================================
+const client = new Client({ 
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ] 
+});
+
+client.on('ready', () => {
+    console.log(`[BOT] ${client.user.tag} sudah Online di Discord!`);
+});
+
+// Membaca pesan yang dikirim di Discord
+client.on('messageCreate', (message) => {
+    // Jangan merespon pesan dari bot lain
+    if (message.author.bot) return;
+
+    // Command simpel: !genkey (Ketik ini di Discord nanti)
+    if (message.content === '!genkey') {
+        // Membuat kombinasi key acak
+        const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const newKey = "KIIBOO-" + randomString;
+        
+        // Memasukkan key baru ke "database" sementara
+        validKeys.add(newKey);
+        
+        // Membalas di Discord
+        message.reply(`✅ Key baru berhasil dibuat: \`${newKey}\`\nKey ini sekarang bisa digunakan di dalam game!`);
+    }
+});
+
+// Menyalakan Bot menggunakan Token dari brankas (Secrets)
+client.login(process.env.TOKEN);

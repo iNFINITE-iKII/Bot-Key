@@ -28,10 +28,17 @@ export function startDiscordBot(): void {
     if (message.content === "!genkey") {
       const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
       const newKey = `KIIBOO-${randomString}`;
-      addKey(newKey);
-      message.reply(
-        `✅ Key baru berhasil dibuat: \`${newKey}\`\nKey ini sekarang bisa digunakan di dalam game!`,
-      );
+
+      addKey(newKey)
+        .then(() => {
+          return message.reply(
+            `✅ Key baru berhasil dibuat: \`${newKey}\`\nKey ini sekarang bisa digunakan di dalam game!`,
+          );
+        })
+        .catch((err) => {
+          logger.error({ err }, "Failed to save key");
+          message.reply("❌ Gagal menyimpan key, coba lagi.").catch(() => {});
+        });
     }
   });
 

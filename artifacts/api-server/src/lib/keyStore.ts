@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 
 const MASTER_KEY = "MASTER-KIIBOO-123";
 
-export async function addKey(key: string): Promise<void> {
-  await db.insert(keysTable).values({ key }).onConflictDoNothing();
+export async function addKey(key: string, expiresAt: Date | null = null): Promise<void> {
+  await db.insert(keysTable).values({ key, expiresAt }).onConflictDoNothing();
 }
 
 export async function isValidKey(key: string): Promise<boolean> {
@@ -14,5 +14,8 @@ export async function isValidKey(key: string): Promise<boolean> {
     .from(keysTable)
     .where(eq(keysTable.key, key))
     .limit(1);
-  return rows.length > 0;
+  if (rows.length === 0) return false;
+  const row = rows[0];
+  if (row.expiresAt && row.expiresAt < new Date()) return false;
+  return true;
 }

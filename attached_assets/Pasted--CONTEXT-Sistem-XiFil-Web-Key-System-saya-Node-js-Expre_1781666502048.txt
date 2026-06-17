@@ -1,0 +1,77 @@
+[CONTEXT]
+Sistem "XiFil Web Key System" saya (Node.js/Express & Neon PostgreSQL) sekarang membutuhkan fitur Autentikasi Pengguna menggunakan Discord OAuth2. Saya ingin sistem website ini memiliki dua tingkatan akses: "Member Panel" untuk pengguna biasa dan "Admin Panel" khusus untuk saya.
+
+[OBJECTIVE]
+Integrasikan Discord OAuth2 (menggunakan library `passport` dan `passport-discord`, atau pendekatan sejenis) agar pengguna hanya bisa login menggunakan akun Discord mereka. Buat sistem Role-Based Access Control (RBAC) untuk memisahkan halaman Member dan Admin.
+
+[REQUIRED DATABASE UPDATES (NEON)]
+Buat/update tabel di database untuk mendukung sistem ini:
+1. Tabel `users`: discord_id (Primary Key), username, avatar, role (default: 'member').
+2. Update Tabel `keys`: Tambahkan kolom `discord_id` (Foreign Key ke tabel users) agar setiap key terikat pada akun Discord tertentu.
+
+[REQUIRED LOGIC & ENDPOINTS]
+1. Sistem Login Discord (OAuth2)
+   - Route `/auth/discord` untuk mengarahkan user ke halaman login Discord.
+   - Route `/auth/discord/callback` untuk menerima data user dari Discord.
+   - Logika: Saat user berhasil login, simpan discord_id, username, dan avatar mereka ke tabel `users` (jika belum ada). Simpan sesi login menggunakan `express-session`.
+
+2. Middleware Autentikasi & Role
+   - Buat middleware `isAuthenticated`: Mengecek apakah user sudah login Discord.
+   - Buat middleware `isAdmin`: Mengecek apakah session user memiliki `discord_id` yang cocok dengan ID Discord milik saya (Hardcoded Admin ID di file .env).
+
+3. Member Panel (Route: GET `/dashboard`)
+   - Hanya bisa diakses jika `isAuthenticated`.
+   - Tampilkan Avatar dan Username Discord mereka.
+   - Tampilkan Key "XiFil" yang sedang mereka miliki (SELECT dari tabel keys WHERE discord_id = ID_mereka).
+   - Tampilkan tombol "Reset HWID" (hanya untuk key milik mereka sendiri).
+
+4. Admin Panel (Route: GET `/xifil-admin`)
+   - Hanya bisa diakses jika `isAdmin`.
+   - Tampilkan tabel kontrol penuh: Semua data Users dan Semua data Keys.
+   - Admin memiliki akses untuk menghapus user, menghapus key, atau mengubah role user lain.
+
+[SECURITY & UI RULES]
+- Gunakan session yang aman (secure cookies jika memungkinkan).
+- Semua operasi database wajib menggunakan parameterized queries untuk mencegah SQL Injection.
+- Buat tampilan UI (menggunakan EJS atau HTML/CSS) yang futuristik, bernuansa Dark Mode dengan aksen warna Cyan. Halaman Member dan Admin harus memiliki desain navigasi yang jelas.
+- Jangan lupa instruksikan saya cara mendapatkan "Client ID" dan "Client Secret" dari Discord Developer Portal untuk diisi ke file .env!
+
+[ADDITIONAL ADMIN FEATURES]
+Tolong tambahkan fitur-fitur "Advanced Management" berikut di dalam halaman Admin Panel (/xifil-admin) agar lebih profesional dan kuat untuk skala besar:
+
+1. Fitur Live Search (Pencarian Instan)
+   - Tambahkan kolom "Search Bar" di atas tabel Key dan tabel User.
+   - Buat endpoint API pencarian (misal: GET `/xifil-admin/api/search?q=...`).
+   - Admin bisa mencari data berdasarkan: Key Code, Discord ID, Username, atau HWID.
+   - Hasil pencarian harus langsung muncul di tabel menggunakan Fetch API (AJAX) tanpa perlu me-refresh seluruh halaman.
+
+2. Pagination (Pembagian Halaman)
+   - Jangan me-render seluruh data database sekaligus jika datanya lebih dari 50 baris.
+   - Buat sistem Pagination (Halaman 1, 2, 3, dst.) dengan limit 50 data per halaman menggunakan klausa `LIMIT` dan `OFFSET` pada query PostgreSQL.
+
+3. Sistem Ban / Blacklist (Sangat Penting)
+   - Tambahkan tombol "Ban HWID" dan "Ban Discord ID" di tabel aksi.
+   - Buat tabel baru di database Neon bernama `blacklist`.
+   - Jika Discord ID atau HWID masuk ke tabel ini, mereka otomatis akan selalu gagal saat mencoba mengakses endpoint pembuatan Key atau saat mencoba login ke website.
+
+
+[ADDITIONAL FEATURE: DYNAMIC GENERATOR & MEMBER ACCESS]
+
+Tolong tambahkan logika bisnis berikut pada Admin Dashboard dan Member Panel:
+
+1. Dynamic GenKey di Admin Dashboard:
+   - Tambahkan dropdown di form "Generate Key" dengan opsi durasi: 
+     "1 Jam" (1h), "1 Hari" (1d), "1 Minggu" (1w), dan "Premium" (30d+ atau Lifetime).
+   - Saat admin menekan tombol generate, server harus menghitung `expires_at` berdasarkan durasi yang dipilih.
+   - Semua key yang dibuat admin harus tersimpan dengan kolom `type` (misal: 'free' atau 'premium') dan `discord_id` (biarkan null jika belum ada pemiliknya).
+
+2. Member Access System (Web-Based Ads Gateway):
+   - Di Member Panel (/dashboard), buat tombol "Get Free Key".
+   - Syarat: Tombol ini HANYA akan aktif (tidak disable) jika member tersebut belum memiliki key 'free' yang aktif.
+   - Alur: Saat tombol "Get Free Key" ditekan, arahkan user ke sistem `checkpoint` yang sudah kita buat sebelumnya (/api/start-checkpoint).
+   - Setelah user menyelesaikan iklan, web akan otomatis meng-update tabel database: `discord_id` akan terisi dengan ID Discord user tersebut dan `status` key menjadi aktif.
+   - Dengan login Discord, member hanya bisa mengambil 1 Free Key per akun. Sistem akan mengecek di database: `SELECT * FROM keys WHERE discord_id = <user_discord_id> AND type = 'free'`. Jika sudah ada, tampilkan pesan: "Kamu sudah memiliki Free Key aktif!"
+
+3. Keamanan Member:
+   - Pastikan member HANYA bisa melihat data milik mereka sendiri di dashboard (Tidak bisa melihat list key milik orang lain).
+   - Halaman Admin Panel tetap memiliki tabel global untuk mencari key siapapun.

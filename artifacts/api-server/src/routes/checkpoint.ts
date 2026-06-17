@@ -2,6 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { createSession, getSession, deleteSession, isSessionValid } from "../lib/sessionStore.js";
 import { addKey, findValidKeyByHwid } from "../lib/keyStore.js";
+import { isHwidBlacklisted } from "../lib/userStore.js";
 
 const checkpointRouter = Router();
 
@@ -57,7 +58,6 @@ function errorPage(message: string): string {
 }
 
 function successPage(key: string, expiresAt: Date): string {
-  const timeLeft = "24 jam";
   return `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -88,6 +88,8 @@ function successPage(key: string, expiresAt: Date): string {
     .expiry span{color:#00C3FF;font-weight:600}
     .warning{margin-top:16px;font-size:.78rem;color:#555;background:#181818;
       border-radius:8px;padding:10px 14px;border:1px solid #222}
+    .dashboard-link{display:block;margin-top:16px;color:#00C3FF;font-size:.85rem;text-decoration:none}
+    .dashboard-link:hover{text-decoration:underline}
   </style>
 </head>
 <body>
@@ -101,8 +103,9 @@ function successPage(key: string, expiresAt: Date): string {
     <button class="copy-btn" onclick="copyKey()">
       <span id="copy-label">📋 Copy Key</span>
     </button>
-    <p class="expiry">Aktif selama <span>${timeLeft}</span> — expired ${expiresAt.toLocaleString("id-ID")}</p>
+    <p class="expiry">Expired: <span>${expiresAt.toLocaleString("id-ID")}</span></p>
     <p class="warning">⚠️ Jangan bagikan key ini. Key diikat ke device kamu (HWID).</p>
+    <a class="dashboard-link" href="/dashboard">← Kembali ke Dashboard</a>
   </div>
   <script>
     function copyKey(){
@@ -143,20 +146,20 @@ function existingKeyPage(key: string, expiresAt: Date): string {
     .key-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:#555;margin-bottom:8px}
     .key-box{background:#0F0F0F;border:1.5px solid #00C3FF;border-radius:10px;padding:16px 20px;
       font-family:'Courier New',monospace;font-size:1.2rem;font-weight:700;color:#00C3FF;
-      letter-spacing:.05em;word-break:break-all;cursor:pointer;transition:background .15s;user-select:all}
-    .key-box:hover{background:#131313}
+      letter-spacing:.05em;word-break:break-all;cursor:pointer;user-select:all}
     .copy-btn{margin-top:14px;display:inline-flex;align-items:center;gap:8px;background:#00C3FF;
       color:#0F0F0F;border:none;border-radius:8px;padding:10px 28px;font-size:.9rem;
       font-weight:700;cursor:pointer;transition:opacity .15s}
     .copy-btn:hover{opacity:.85}
     .expiry{margin-top:20px;font-size:.82rem;color:#555}
     .expiry span{color:#00C3FF;font-weight:600}
+    .dashboard-link{display:block;margin-top:16px;color:#00C3FF;font-size:.85rem;text-decoration:none}
   </style>
 </head>
 <body>
   <div class="card">
     <div class="icon">🔄</div>
-    <h1>Key Kamu Masih Aktif</h1>
+    <h1>Key Masih Aktif</h1>
     <p class="subtitle">Device ini sudah punya key yang belum expired.</p>
     <div class="badge">KEY AKTIF</div>
     <p class="key-label">Key Kamu</p>
@@ -165,6 +168,7 @@ function existingKeyPage(key: string, expiresAt: Date): string {
       <span id="copy-label">📋 Copy Key</span>
     </button>
     <p class="expiry">Sisa waktu: <span>${timeLeft}</span></p>
+    <a class="dashboard-link" href="/dashboard">← Kembali ke Dashboard</a>
   </div>
   <script>
     function copyKey(){
@@ -179,7 +183,7 @@ function existingKeyPage(key: string, expiresAt: Date): string {
 </html>`;
 }
 
-checkpointRouter.get("/start-checkpoint", startLimiter, (req, res) => {
+checkpointRouter.get("/start-checkpoint", startLimiter, async (req, res) => {
   const hwid = req.query["hwid"];
   if (typeof hwid !== "string" || !hwid.trim()) {
     res.status(400).setHeader("Content-Type", "text/html; charset=utf-8");
@@ -187,8 +191,16 @@ checkpointRouter.get("/start-checkpoint", startLimiter, (req, res) => {
     return;
   }
 
+  const banned = await isHwidBlacklisted(hwid.trim());
+  if (banned) {
+    res.status(403).setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(errorPage("HWID kamu telah diblokir. Hubungi admin jika ada kesalahan."));
+    return;
+  }
+
   const ip = getClientIp(req as any);
-  const session = createSession(hwid.trim(), ip);
+  const discordId = req.session.user?.discordId ?? null;
+  const session = createSession(hwid.trim(), ip, discordId);
 
   const adLinkBase = process.env["AD_LINK_URL"];
   if (!adLinkBase) {
@@ -213,7 +225,7 @@ checkpointRouter.get("/verify-checkpoint", async (req, res) => {
 
   if (typeof sessionId !== "string" || !sessionId) {
     res.status(400).setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(errorPage("Sesi tidak valid atau kedaluwarsa, atau terdeteksi penggunaan bypasser. Silakan ulangi dari awal."));
+    res.send(errorPage("Sesi tidak valid. Silakan ulangi dari awal."));
     return;
   }
 
@@ -239,7 +251,7 @@ checkpointRouter.get("/verify-checkpoint", async (req, res) => {
   const newKey = `XiFil-FREE-${randomString}`;
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-  await addKey(newKey, expiresAt, null, session.hwid);
+  await addKey(newKey, expiresAt, null, session.hwid, session.discordId, "free");
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(successPage(newKey, expiresAt));

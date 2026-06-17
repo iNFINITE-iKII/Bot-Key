@@ -8,6 +8,8 @@ export const keysTable = pgTable("keys", {
   expiresAt: timestamp("expires_at"),
   hwid: text("hwid"),
   ip: text("ip"),
+  discordId: text("discord_id"),
+  type: text("type").notNull().default("free"),
 });
 
 export const insertKeySchema = createInsertSchema(keysTable).omit({ createdAt: true });

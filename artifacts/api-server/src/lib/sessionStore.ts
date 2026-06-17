@@ -4,6 +4,7 @@ export interface CheckpointSession {
   sessionId: string;
   hwid: string;
   ip: string;
+  discordId: string | null;
   createdAt: Date;
   expiresAt: Date;
 }
@@ -12,13 +13,18 @@ const SESSION_TTL_MS = 15 * 60 * 1000;
 
 const sessions = new Map<string, CheckpointSession>();
 
-export function createSession(hwid: string, ip: string): CheckpointSession {
+export function createSession(
+  hwid: string,
+  ip: string,
+  discordId: string | null = null
+): CheckpointSession {
   const sessionId = randomUUID();
   const now = new Date();
   const session: CheckpointSession = {
     sessionId,
     hwid,
     ip,
+    discordId,
     createdAt: now,
     expiresAt: new Date(now.getTime() + SESSION_TTL_MS),
   };

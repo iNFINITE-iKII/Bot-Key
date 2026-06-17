@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>XiFil Hub – Admin Panel</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0A0A0F;color:#E0E0E0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+    nav{background:#0F0F1A;border-bottom:1px solid #1E1E30;padding:0 32px;
+      display:flex;align-items:center;justify-content:space-between;height:60px}
+    .nav-brand{font-weight:800;font-size:1.1rem;
+      background:linear-gradient(135deg,#00C3FF,#0080FF);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .nav-links{display:flex;gap:16px;align-items:center}
+    .nav-links a{color:#888;text-decoration:none;font-size:.88rem;transition:color .15s}
+    .nav-links a:hover{color:#00C3FF}
+    .admin-badge{background:#00C3FF1A;border:1px solid #00C3FF33;color:#00C3FF;
+      font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.05em}
+    main{max-width:1200px;margin:0 auto;padding:40px 24px}
+    h1{font-size:1.5rem;font-weight:700;margin-bottom:4px}
+    .subtitle{color:#555;font-size:.9rem;margin-bottom:32px}
+    .tabs{display:flex;gap:2px;background:#0F0F1A;border:1px solid #1E1E30;
+      border-radius:12px;padding:4px;margin-bottom:28px;width:fit-content}
+    .tab{padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.88rem;
+      font-weight:600;border:none;background:transparent;color:#555;transition:all .15s}
+    .tab.active{background:#00C3FF;color:#0A0A0F}
+    .tab:not(.active):hover{color:#00C3FF}
+    .section{display:none}
+    .section.active{display:block}
+    .card{background:#141420;border:1px solid #1E1E30;border-radius:16px;padding:24px;margin-bottom:20px}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:gap}
+    .card-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:#555}
+    .search-bar{background:#0A0A0F;border:1px solid #2A2A3A;border-radius:8px;
+      padding:8px 14px;color:#E0E0E0;font-size:.88rem;outline:none;width:260px}
+    .search-bar:focus{border-color:#00C3FF}
+    .search-bar::placeholder{color:#444}
+    table{width:100%;border-collapse:collapse;font-size:.82rem}
+    th{text-align:left;padding:8px 12px;color:#555;font-size:.72rem;text-transform:uppercase;
+      letter-spacing:.08em;border-bottom:1px solid #1E1E30}
+    td{padding:9px 12px;border-bottom:1px solid #13131F;vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:#0F0F1A}
+    .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.7rem;font-weight:600}
+    .badge-free{background:#1E2A2A;color:#00C3FF;border:1px solid #00C3FF33}
+    .badge-premium{background:#2A1E2A;color:#C3A0FF;border:1px solid #C3A0FF33}
+    .badge-member{background:#1A1A2A;color:#888;border:1px solid #2A2A3A}
+    .badge-admin{background:#1E2A2A;color:#00C3FF;border:1px solid #00C3FF33}
+    .badge-active{background:#0A1A0A;color:#00FF88;border:1px solid #00FF8833}
+    .badge-expired{background:#1A0A0A;color:#FF4C4C;border:1px solid #FF4C4C33}
+    .mono{font-family:'Courier New',monospace;font-size:.78rem;color:#00C3FF}
+    .action-btn{background:transparent;border:1px solid #2A2A3A;color:#888;
+      border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer;transition:all .15s}
+    .action-btn:hover{border-color:#FF4C4C;color:#FF4C4C}
+    .action-btn.cyan:hover{border-color:#00C3FF;color:#00C3FF}
+    .btn{border:none;border-radius:8px;padding:9px 18px;font-size:.86rem;
+      font-weight:700;cursor:pointer;transition:opacity .15s}
+    .btn:hover{opacity:.85}
+    .btn-cyan{background:#00C3FF;color:#0A0A0F}
+    .btn-sm{padding:6px 14px;font-size:.78rem}
+    .genkey-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#555}
+    .form-input,.form-select{background:#0A0A0F;border:1px solid #2A2A3A;border-radius:8px;
+      padding:8px 12px;color:#E0E0E0;font-size:.86rem;outline:none}
+    .form-input:focus,.form-select:focus{border-color:#00C3FF}
+    .form-select option{background:#141420}
+    .key-result{background:#0A1A0A;border:1px solid #00FF8833;border-radius:8px;
+      padding:12px 16px;font-family:'Courier New',monospace;color:#00FF88;
+      font-size:.9rem;display:none;margin-top:12px;cursor:pointer}
+    .pagination{display:flex;gap:8px;align-items:center;margin-top:16px;justify-content:flex-end}
+    .page-btn{background:#141420;border:1px solid #1E1E30;color:#888;border-radius:6px;
+      padding:5px 12px;font-size:.82rem;cursor:pointer;text-decoration:none;transition:all .15s}
+    .page-btn:hover,.page-btn.active{border-color:#00C3FF;color:#00C3FF}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+    .stat-card{background:#141420;border:1px solid #1E1E30;border-radius:12px;padding:18px 20px}
+    .stat-val{font-size:1.8rem;font-weight:800;color:#00C3FF;line-height:1}
+    .stat-lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#555;margin-top:4px}
+    .ban-form{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+    .empty{text-align:center;color:#333;padding:32px;font-size:.88rem}
+    @media(max-width:768px){
+      .genkey-form{grid-template-columns:1fr 1fr}
+      .stats-grid{grid-template-columns:1fr 1fr}
+      .search-bar{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-brand">⚡ XiFil Hub</div>
+    <div class="nav-links">
+      <span class="admin-badge">ADMIN</span>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/auth/logout">Logout</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>⚙️ Admin Panel</h1>
+    <p class="subtitle">Full control — XiFil Key System</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-val"><%= keys.length %></div>
+        <div class="stat-lbl">Keys (halaman ini)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val"><%= users.length %></div>
+        <div class="stat-lbl">Users (halaman ini)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val"><%= bans.length %></div>
+        <div class="stat-lbl">Total Ban</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">P<%= page %></div>
+        <div class="stat-lbl">Halaman Aktif</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('keys')">🔑 Keys</button>
+      <button class="tab" onclick="showTab('users')">👥 Users</button>
+      <button class="tab" onclick="showTab('bans')">🚫 Blacklist</button>
+      <button class="tab" onclick="showTab('genkey')">✨ Gen Key</button>
+    </div>
+
+    <!-- KEYS TAB -->
+    <div id="tab-keys" class="section active">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔑 Semua Keys</div>
+          <input class="search-bar" type="text" id="searchKeys" placeholder="Cari key, discord ID, hwid..." oninput="liveSearch(this.value,'keys')"/>
+        </div>
+        <table id="keysTable">
+          <thead><tr>
+            <th>Key</th><th>Type</th><th>Discord ID</th><th>HWID</th><th>Status</th><th>Expired</th><th>Aksi</th>
+          </tr></thead>
+          <tbody id="keysTbody">
+            <% keys.forEach(k => { %>
+              <% const expired = k.expiresAt && k.expiresAt < new Date(); %>
+              <tr>
+                <td><span class="mono"><%= k.key %></span></td>
+                <td><span class="badge <%= k.type === 'premium' ? 'badge-premium' : 'badge-free' %>"><%= (k.type || 'free').toUpperCase() %></span></td>
+                <td><span class="mono" style="color:#888"><%= k.discordId || '—' %></span></td>
+                <td><span style="font-size:.72rem;color:#555"><%= k.hwid ? k.hwid.substring(0,16)+'...' : '—' %></span></td>
+                <td><span class="badge <%= expired ? 'badge-expired' : 'badge-active' %>"><%= expired ? 'EXPIRED' : 'AKTIF' %></span></td>
+                <td style="font-size:.75rem;color:#555"><%= k.expiresAt ? k.expiresAt.toLocaleDateString('id-ID') : '∞' %></td>
+                <td>
+                  <button class="action-btn" onclick="deleteKey('<%= k.key %>')">🗑️ Hapus</button>
+                  <% if (k.hwid) { %>
+                    <button class="action-btn cyan" onclick="banHwid('<%= k.hwid %>')">🚫 Ban HWID</button>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+            <% if (keys.length === 0) { %>
+              <tr><td colspan="7" class="empty">Tidak ada key di halaman ini.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <% if (page > 1) { %><a class="page-btn" href="?page=<%= page-1 %>">← Prev</a><% } %>
+          <span class="page-btn active">Hal <%= page %></span>
+          <% if (keys.length === 50) { %><a class="page-btn" href="?page=<%= page+1 %>">Next →</a><% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS TAB -->
+    <div id="tab-users" class="section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">👥 Semua Users</div>
+          <input class="search-bar" type="text" id="searchUsers" placeholder="Cari username, discord ID..." oninput="liveSearch(this.value,'users')"/>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Username</th><th>Discord ID</th><th>Role</th><th>Joined</th><th>Aksi</th>
+          </tr></thead>
+          <tbody id="usersTbody">
+            <% users.forEach(u => { %>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <% if (u.avatar) { %>
+                      <img src="<%= u.avatar %>" style="width:24px;height:24px;border-radius:50%" alt=""/>
+                    <% } %>
+                    <%= u.username %>
+                  </div>
+                </td>
+                <td><span class="mono" style="color:#888"><%= u.discordId %></span></td>
+                <td><span class="badge <%= u.role === 'admin' ? 'badge-admin' : 'badge-member' %>"><%= u.role.toUpperCase() %></span></td>
+                <td style="font-size:.75rem;color:#555"><%= u.createdAt.toLocaleDateString('id-ID') %></td>
+                <td style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button class="action-btn cyan" onclick="changeRole('<%= u.discordId %>','<%= u.role === 'admin' ? 'member' : 'admin' %>')">
+                    <%= u.role === 'admin' ? '👤 Jadikan Member' : '⭐ Jadikan Admin' %>
+                  </button>
+                  <button class="action-btn" onclick="banDiscord('<%= u.discordId %>')">🚫 Ban</button>
+                  <button class="action-btn" onclick="deleteUser('<%= u.discordId %>')">🗑️ Hapus</button>
+                </td>
+              </tr>
+            <% }) %>
+            <% if (users.length === 0) { %>
+              <tr><td colspan="5" class="empty">Tidak ada user di halaman ini.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BANS TAB -->
+    <div id="tab-bans" class="section">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">🚫 Blacklist — Ban Manual</div>
+        <div class="ban-form" style="margin-bottom:20px">
+          <div class="form-group">
+            <label class="form-label">Discord ID (opsional)</label>
+            <input class="form-input" type="text" id="banDiscordInput" placeholder="123456789"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">HWID (opsional)</label>
+            <input class="form-input" type="text" id="banHwidInput" placeholder="abc123..."/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alasan</label>
+            <input class="form-input" type="text" id="banReasonInput" placeholder="Bypass, abuse, dll"/>
+          </div>
+          <button class="btn btn-cyan btn-sm" onclick="submitBan()">🚫 Tambah Ban</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Discord ID</th><th>HWID</th><th>Alasan</th><th>Tanggal</th><th>Aksi</th></tr></thead>
+          <tbody>
+            <% bans.forEach(b => { %>
+              <tr>
+                <td style="color:#555"><%= b.id %></td>
+                <td><span class="mono" style="color:#888"><%= b.discordId || '—' %></span></td>
+                <td style="font-size:.72rem;color:#555"><%= b.hwid ? b.hwid.substring(0,20)+'...' : '—' %></td>
+                <td style="color:#888"><%= b.reason || '—' %></td>
+                <td style="font-size:.75rem;color:#555"><%= b.createdAt.toLocaleDateString('id-ID') %></td>
+                <td><button class="action-btn cyan" onclick="unban(<%= b.id %>)">✅ Cabut</button></td>
+              </tr>
+            <% }) %>
+            <% if (bans.length === 0) { %>
+              <tr><td colspan="6" class="empty">Tidak ada entri blacklist.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GENKEY TAB -->
+    <div id="tab-genkey" class="section">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">✨ Generate Key</div>
+        <div class="genkey-form">
+          <div class="form-group">
+            <label class="form-label">Durasi</label>
+            <select class="form-select" id="keyDuration">
+              <option value="1h">1 Jam</option>
+              <option value="1d" selected>1 Hari</option>
+              <option value="1w">1 Minggu</option>
+              <option value="30d">30 Hari</option>
+              <option value="lifetime">Lifetime (∞)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipe</label>
+            <select class="form-select" id="keyType">
+              <option value="free">Free</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Discord ID (opsional)</label>
+            <input class="form-input" type="text" id="keyDiscordId" placeholder="Biarkan kosong jika tidak ada"/>
+          </div>
+          <button class="btn btn-cyan" onclick="generateKey()">⚡ Generate</button>
+        </div>
+        <div id="keyResult" class="key-result" onclick="copyResult()">Klik untuk copy key...</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function showTab(name){
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-'+name).classList.add('active');
+    }
+
+    async function apiFetch(path,method='GET',body=null){
+      const opts={method,headers:{'Content-Type':'application/json'}};
+      if(body)opts.body=JSON.stringify(body);
+      const r=await fetch('/xifil-admin'+path,opts);
+      return r.json();
+    }
+
+    async function liveSearch(q,type){
+      if(!q.trim()){location.reload();return;}
+      const data=await apiFetch('/api/search?q='+encodeURIComponent(q)+'&type='+type);
+      if(type!=='users'){
+        const tbody=document.getElementById('keysTbody');
+        tbody.innerHTML=data.keys.map(k=>{
+          const expired=k.expires_at&&new Date(k.expires_at)<new Date();
+          return`<tr>
+            <td><span class="mono">${k.key}</span></td>
+            <td><span class="badge ${k.type==='premium'?'badge-premium':'badge-free'}">${(k.type||'free').toUpperCase()}</span></td>
+            <td><span class="mono" style="color:#888">${k.discord_id||'—'}</span></td>
+            <td style="font-size:.72rem;color:#555">${k.hwid?k.hwid.substring(0,16)+'...':'—'}</td>
+            <td><span class="badge ${expired?'badge-expired':'badge-active'}">${expired?'EXPIRED':'AKTIF'}</span></td>
+            <td style="font-size:.75rem;color:#555">${k.expires_at?new Date(k.expires_at).toLocaleDateString('id-ID'):'∞'}</td>
+            <td><button class="action-btn" onclick="deleteKey('${k.key}')">🗑️ Hapus</button></td>
+          </tr>`;
+        }).join('')||'<tr><td colspan="7" class="empty">Tidak ditemukan.</td></tr>';
+      }
+      if(type!=='keys'){
+        const tbody=document.getElementById('usersTbody');
+        tbody.innerHTML=data.users.map(u=>`<tr>
+          <td>${u.username}</td>
+          <td><span class="mono" style="color:#888">${u.discord_id}</span></td>
+          <td><span class="badge ${u.role==='admin'?'badge-admin':'badge-member'}">${u.role.toUpperCase()}</span></td>
+          <td></td>
+          <td><button class="action-btn" onclick="deleteUser('${u.discord_id}')">🗑️ Hapus</button></td>
+        </tr>`).join('')||'<tr><td colspan="5" class="empty">Tidak ditemukan.</td></tr>';
+      }
+    }
+
+    async function deleteKey(key){
+      if(!confirm('Hapus key '+key+'?'))return;
+      const r=await apiFetch('/api/delete-key','POST',{key});
+      if(r.success)location.reload();
+    }
+
+    async function deleteUser(id){
+      if(!confirm('Hapus user '+id+'?'))return;
+      const r=await apiFetch('/api/delete-user','POST',{discord_id:id});
+      if(r.success)location.reload();
+    }
+
+    async function changeRole(id,role){
+      if(!confirm(`Ubah role ${id} menjadi ${role}?`))return;
+      const r=await apiFetch('/api/change-role','POST',{discord_id:id,role});
+      if(r.success)location.reload();
+    }
+
+    async function banDiscord(id){
+      const reason=prompt('Alasan ban (opsional):');
+      if(reason===null)return;
+      const r=await apiFetch('/api/ban','POST',{discord_id:id,reason});
+      if(r.success)location.reload();
+    }
+
+    async function banHwid(hwid){
+      const reason=prompt('Alasan ban HWID (opsional):');
+      if(reason===null)return;
+      const r=await apiFetch('/api/ban','POST',{hwid,reason});
+      if(r.success)location.reload();
+    }
+
+    async function unban(id){
+      if(!confirm('Cabut ban ini?'))return;
+      const r=await apiFetch('/api/unban','POST',{id});
+      if(r.success)location.reload();
+    }
+
+    async function submitBan(){
+      const discord_id=document.getElementById('banDiscordInput').value.trim()||undefined;
+      const hwid=document.getElementById('banHwidInput').value.trim()||undefined;
+      const reason=document.getElementById('banReasonInput').value.trim()||undefined;
+      if(!discord_id&&!hwid){alert('Isi Discord ID atau HWID terlebih dahulu.');return;}
+      const r=await apiFetch('/api/ban','POST',{discord_id,hwid,reason});
+      if(r.success)location.reload();
+    }
+
+    async function generateKey(){
+      const duration=document.getElementById('keyDuration').value;
+      const type=document.getElementById('keyType').value;
+      const discord_id=document.getElementById('keyDiscordId').value.trim()||undefined;
+      const r=await apiFetch('/api/genkey','POST',{duration,type,discord_id});
+      if(r.success){
+        const el=document.getElementById('keyResult');
+        el.textContent=r.key;
+        el.style.display='block';
+      }
+    }
+
+    function copyResult(){
+      const el=document.getElementById('keyResult');
+      navigator.clipboard.writeText(el.textContent).then(()=>{
+        const orig=el.textContent;
+        el.textContent='✅ Copied: '+orig;
+        setTimeout(()=>{el.textContent=orig},1500);
+      });
+    }
+  </script>
+</body>
+</html>

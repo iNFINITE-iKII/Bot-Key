@@ -7,6 +7,7 @@ export const keysTable = pgTable("keys", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"),
   hwid: text("hwid"),
+  ip: text("ip"),
 });
 
 export const insertKeySchema = createInsertSchema(keysTable).omit({ createdAt: true });

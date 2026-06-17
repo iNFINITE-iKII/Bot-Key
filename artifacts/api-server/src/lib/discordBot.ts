@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits } from "discord.js";
-import { addKey } from "./keyStore.js";
+import { addKey, getKeyInfo } from "./keyStore.js";
 import { logger } from "./logger.js";
 
 function parseDuration(input: string): number | null {
@@ -11,6 +11,15 @@ function parseDuration(input: string): number | null {
   if (unit === "d") return value * 24 * 60 * 60 * 1000;
   if (unit === "w") return value * 7 * 24 * 60 * 60 * 1000;
   return null;
+}
+
+function formatDuration(ms: number): string {
+  const h = ms / (60 * 60 * 1000);
+  if (h < 1) return `${Math.round(ms / 60000)} menit`;
+  if (h < 24) return `${Math.round(h)} jam`;
+  const d = h / 24;
+  if (d < 7) return `${Math.round(d)} hari`;
+  return `${Math.round(d / 7)} minggu`;
 }
 
 function formatExpiry(ms: number): string {
@@ -48,23 +57,21 @@ export function startDiscordBot(): void {
     const command = args[0];
 
     // !genkey          → permanent key
-    // !genkey 1h       → expires in 1 hour
-    // !genkey 7d       → expires in 7 days
-    // !genkey 2w       → expires in 2 weeks
+    // !genkey 1h/7d/2w → timed key
     if (command === "!genkey") {
       const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const newKey = `KIIBOO-${randomString}`;
+      const newKey = `XiFil-${randomString}`;
 
       let expiresAt: Date | null = null;
-      let expiryText = "**Permanen** (tidak pernah expired)";
+      let expiryText = "🔒 **Permanen** — tidak pernah expired";
 
       if (args[1]) {
         const durationMs = parseDuration(args[1]);
         if (!durationMs) {
           message.reply(
             "❌ Format waktu tidak valid!\n" +
-            "Contoh: `!genkey 1h` (1 jam) | `!genkey 7d` (7 hari) | `!genkey 2w` (2 minggu)\n" +
-            "Atau `!genkey` tanpa waktu untuk key permanen."
+            "Contoh: `!genkey 1h` | `!genkey 7d` | `!genkey 2w`\n" +
+            "Atau `!genkey` untuk key permanen."
           ).catch(() => {});
           return;
         }
@@ -75,7 +82,7 @@ export function startDiscordBot(): void {
       addKey(newKey, expiresAt)
         .then(() => {
           return message.reply(
-            `✅ Key baru berhasil dibuat!\n` +
+            `✅ Key berhasil dibuat!\n` +
             `🔑 \`${newKey}\`\n` +
             `${expiryText}`
           );
@@ -86,14 +93,62 @@ export function startDiscordBot(): void {
         });
     }
 
+    // !keyinfo <key> → cek sisa waktu key
+    if (command === "!keyinfo") {
+      const targetKey = args[1];
+      if (!targetKey) {
+        message.reply("❌ Masukkan key!\nContoh: `!keyinfo XiFil-ABC123`").catch(() => {});
+        return;
+      }
+
+      getKeyInfo(targetKey)
+        .then((info) => {
+          if (!info) {
+            return message.reply(`❌ Key \`${targetKey}\` tidak ditemukan di database.`);
+          }
+
+          const now = new Date();
+
+          if (info.expiresAt === null) {
+            return message.reply(
+              `🔑 **Info Key:** \`${info.key}\`\n` +
+              `🔒 Status: **Permanen** — tidak pernah expired\n` +
+              `📅 Dibuat: ${info.createdAt.toLocaleString("id-ID")}`
+            );
+          }
+
+          if (info.expiresAt < now) {
+            return message.reply(
+              `🔑 **Info Key:** \`${info.key}\`\n` +
+              `❌ Status: **Sudah expired**\n` +
+              `📅 Expired pada: ${info.expiresAt.toLocaleString("id-ID")}`
+            );
+          }
+
+          const sisaMs = info.expiresAt.getTime() - now.getTime();
+          return message.reply(
+            `🔑 **Info Key:** \`${info.key}\`\n` +
+            `✅ Status: **Aktif**\n` +
+            `⏰ Sisa waktu: **${formatDuration(sisaMs)}**\n` +
+            `📅 Expired: ${info.expiresAt.toLocaleString("id-ID")}`
+          );
+        })
+        .catch((err) => {
+          logger.error({ err }, "Failed to get key info");
+          message.reply("❌ Gagal mengecek key.").catch(() => {});
+        });
+    }
+
     // !help
     if (command === "!help") {
       message.reply(
-        "📋 **Daftar Command:**\n" +
+        "📋 **Daftar Command XiFil Bot:**\n\n" +
         "`!genkey` → Generate key **permanen**\n" +
         "`!genkey 1h` → Key expired dalam 1 jam\n" +
         "`!genkey 7d` → Key expired dalam 7 hari\n" +
-        "`!genkey 2w` → Key expired dalam 2 minggu"
+        "`!genkey 2w` → Key expired dalam 2 minggu\n" +
+        "`!keyinfo <key>` → Cek sisa waktu key\n" +
+        "`!help` → Tampilkan daftar command"
       ).catch(() => {});
     }
   });

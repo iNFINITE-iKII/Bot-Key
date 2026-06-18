@@ -11,6 +11,9 @@ import { isDiscordIdBlacklisted } from "../lib/userStore.js";
 const authRouter = Router();
 
 function getRedirectUri(req: Parameters<typeof authRouter.get>[1] extends (req: infer R, ...args: any[]) => any ? R : never): string {
+  if (process.env["DISCORD_REDIRECT_URI"]) {
+    return process.env["DISCORD_REDIRECT_URI"];
+  }
   const domain = process.env["RAILWAY_PUBLIC_DOMAIN"]
     ? `https://${process.env["RAILWAY_PUBLIC_DOMAIN"]}`
     : `${req.protocol}://${req.get("host")}`;

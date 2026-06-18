@@ -28,7 +28,10 @@ export async function exchangeCode(
     body: body.toString(),
   });
 
-  if (!res.ok) throw new Error("Failed to exchange Discord code");
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Discord token exchange failed (${res.status}): ${errBody}`);
+  }
   const data = (await res.json()) as { access_token: string };
   return data.access_token;
 }

@@ -45,6 +45,46 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/debug-uri", (req, res) => {
+  const domain = process.env["RAILWAY_PUBLIC_DOMAIN"]
+    ? `https://${process.env["RAILWAY_PUBLIC_DOMAIN"]}`
+    : `${req.protocol}://${req.get("host")}`;
+  const autoUri = `${domain}/auth/discord/callback`;
+  const manualUri = process.env["DISCORD_REDIRECT_URI"] ?? null;
+  const activeUri = manualUri ?? autoUri;
+  res.send(`<!DOCTYPE html><html><head><style>
+    body{background:#0A0A0F;color:#E0E0E0;font-family:monospace;padding:40px;max-width:700px;margin:0 auto}
+    h2{color:#00C3FF;margin-bottom:24px}
+    .box{background:#141420;border:1px solid #1E1E30;border-radius:12px;padding:20px;margin-bottom:16px}
+    .label{color:#555;font-size:.8rem;margin-bottom:6px}
+    .uri{color:#00FF99;font-size:1rem;word-break:break-all}
+    .warn{color:#FFB800}
+    .ok{color:#00FF99}
+  </style></head><body>
+    <h2>🔍 Discord Redirect URI Debug</h2>
+    <div class="box">
+      <div class="label">✅ URI AKTIF (yang dipakai server saat ini):</div>
+      <div class="uri">${activeUri}</div>
+    </div>
+    <div class="box">
+      <div class="label">Auto-generated dari domain:</div>
+      <div class="uri ${manualUri ? 'warn' : 'ok'}">${autoUri}</div>
+    </div>
+    <div class="box">
+      <div class="label">DISCORD_REDIRECT_URI (manual override):</div>
+      <div class="uri">${manualUri ?? '<span style="color:#555">— tidak di-set —</span>'}</div>
+    </div>
+    <div class="box">
+      <div class="label">RAILWAY_PUBLIC_DOMAIN:</div>
+      <div class="uri">${process.env["RAILWAY_PUBLIC_DOMAIN"] ?? '<span style="color:#555">— tidak di-set —</span>'}</div>
+    </div>
+    <div class="box" style="border-color:#3A2A00">
+      <div class="label warn">⚠️ Pastikan URI AKTIF di atas SAMA PERSIS dengan yang ada di:</div>
+      <div style="color:#FFB800;margin-top:6px">Discord Developer Portal → OAuth2 → Redirects</div>
+    </div>
+  </body></html>`);
+});
+
 app.get("/", (req, res) => {
   if (req.session.user) {
     res.redirect("/dashboard");

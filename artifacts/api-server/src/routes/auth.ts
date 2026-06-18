@@ -23,14 +23,39 @@ authRouter.get("/discord", (req, res) => {
 
 authRouter.get("/discord/callback", async (req, res) => {
   const code = req.query["code"];
+  const discordError = req.query["error"];
+
+  if (discordError === "access_denied") {
+    res.redirect("/?error=access_denied");
+    return;
+  }
+
   if (typeof code !== "string") {
-    res.redirect("/");
+    res.redirect("/?error=no_code");
+    return;
+  }
+
+  let token: string;
+  try {
+    token = await exchangeCode(code, getRedirectUri(req));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Discord OAuth] Token exchange failed:", msg);
+    res.redirect("/?error=token_exchange&detail=" + encodeURIComponent(msg));
+    return;
+  }
+
+  let discordUser: Awaited<ReturnType<typeof getDiscordUser>>;
+  try {
+    discordUser = await getDiscordUser(token);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Discord OAuth] Fetch user failed:", msg);
+    res.redirect("/?error=fetch_user&detail=" + encodeURIComponent(msg));
     return;
   }
 
   try {
-    const token = await exchangeCode(code, getRedirectUri(req));
-    const discordUser = await getDiscordUser(token);
     const avatarUrl = getAvatarUrl(discordUser);
 
     const banned = await isDiscordIdBlacklisted(discordUser.id);
@@ -53,8 +78,10 @@ authRouter.get("/discord/callback", async (req, res) => {
     };
 
     res.redirect("/dashboard");
-  } catch {
-    res.redirect("/?error=auth_failed");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Discord OAuth] DB/session error:", msg);
+    res.redirect("/?error=db_error&detail=" + encodeURIComponent(msg));
   }
 });
 

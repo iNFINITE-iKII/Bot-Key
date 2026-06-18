@@ -43,7 +43,33 @@
     <div class="brand">XiFil Hub</div>
     <p class="tagline">KIIBOO Key System — Aman & Terpercaya</p>
     <% if (error) { %>
-      <div class="error-msg">Login gagal. Silakan coba lagi.</div>
+      <div class="error-msg">
+        <% if (error === 'access_denied') { %>
+          ❌ Kamu membatalkan proses login Discord.
+        <% } else if (error === 'no_code') { %>
+          ❌ Discord tidak mengirim kode otorisasi. Coba lagi.
+        <% } else if (error === 'token_exchange') { %>
+          ❌ Gagal tukar kode dengan Discord.<br/>
+          <small style="opacity:.7">Kemungkinan: Client Secret salah atau Redirect URI belum didaftarkan di Discord Developer Portal.</small>
+          <% if (typeof detail !== 'undefined' && detail) { %>
+            <br/><code style="font-size:.75rem;opacity:.5"><%= detail %></code>
+          <% } %>
+        <% } else if (error === 'fetch_user') { %>
+          ❌ Gagal mengambil data akun Discord kamu.<br/>
+          <small style="opacity:.7">Token tidak valid atau Discord API sedang bermasalah.</small>
+          <% if (typeof detail !== 'undefined' && detail) { %>
+            <br/><code style="font-size:.75rem;opacity:.5"><%= detail %></code>
+          <% } %>
+        <% } else if (error === 'db_error') { %>
+          ❌ Gagal menyimpan sesi login.<br/>
+          <small style="opacity:.7">Kemungkinan: Database (Neon) tidak terhubung atau tabel belum dibuat.</small>
+          <% if (typeof detail !== 'undefined' && detail) { %>
+            <br/><code style="font-size:.75rem;opacity:.5"><%= detail %></code>
+          <% } %>
+        <% } else { %>
+          ❌ Login gagal (<%= error %>). Silakan coba lagi.
+        <% } %>
+      </div>
     <% } %>
     <ul class="feature-list">
       <li><span>🔑</span> Free Key via iklan setiap 24 jam</li>

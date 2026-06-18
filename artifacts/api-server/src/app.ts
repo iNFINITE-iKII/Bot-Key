@@ -50,7 +50,10 @@ app.get("/", (req, res) => {
     res.redirect("/dashboard");
     return;
   }
-  res.render("login", { error: req.query["error"] ?? null });
+  res.render("login", {
+    error: req.query["error"] ?? null,
+    detail: req.query["detail"] ?? null,
+  });
 });
 
 app.use("/auth", authRouter);
